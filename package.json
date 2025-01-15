@@ -1,0 +1,29 @@
+{
+  "name": "bun-react-playwright-coverage",
+  "description": "Client side rendering react app tooled with bun",
+  "version": "0.0.1",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "rm -rf build && mkdir ./build && bun run scripts/index.ts --watch --hot"
+  },
+  "keywords": [
+    "bun.sh",
+    "bun",
+    "react",
+    "csr"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react-dom": "^18.2.19"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.1",
+    "sass": "^1.71.1"
+  }
+}
