@@ -5,17 +5,29 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "rm -rf build && mkdir ./build && bun run scripts/index.ts --watch --hot"
+    "dev": "rm -rf bun_dev_dist && mkdir ./bun_dev_dist && NODE_ENV=development bun --env-file=.env.development.local run scripts/index.ts --watch --hot",
+    "test:e2e": "bunx playwright test",
+    "test:e2e:generate:coverage": "bunx nyc report && echo view the html code coverage report: bun run test:e2e:generate:show-report",
+    "test:e2e:generate:show-report": "open-cli ./test-results/code-coverage/reports/index.html"
   },
   "keywords": [
     "bun.sh",
     "bun",
     "react",
-    "csr"
+    "csr",
+    "playwright",
+    "code-coverage",
+    "bun-plugin-istanbul",
+    "nyc"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@types/bun": "latest",
-    "@types/react-dom": "^18.2.19"
+    "@types/node": "^22.10.6",
+    "@types/react-dom": "^18.2.19",
+    "bun-plugin-istanbul": "^1.1.0",
+    "nyc": "^17.1.0",
+    "open-cli": "^8.0.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -23,7 +35,6 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.1",
-    "sass": "^1.71.1"
+    "react-router-dom": "^6.22.1"
   }
 }
