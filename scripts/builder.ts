@@ -1,71 +1,74 @@
-import { watch } from "fs";
-import type { BunPlugin } from "bun";
-const sass = await import("sass");
-
-const path = "./build/styles.css";
-
-await Bun.write(path, "", { createPath: true });
-
-let totalCompiledCSS = "";
-
-const sassPlugin: BunPlugin = {
-  name: "sass",
-  setup(build) {
-    build.onLoad({ filter: /\.scss$/ }, async (args) => {
-      const compiledCSS = sass.compile(args.path, { style: "compressed" });
-      totalCompiledCSS = totalCompiledCSS.concat(compiledCSS.css);
-      await Bun.write(path, totalCompiledCSS);
-      return {
-        contents: compiledCSS.css,
-        loader: "file",
-      };
-    });
-  },
-};
+/* eslint-disable no-console */
+import bunPluginIstanbul from "bun-plugin-istanbul";
+import { getFolderSize } from "./buildSize";
 
 export function startBuilder({
-  BUILD_DIR,
-  PORT,
+	BUILD_DIR_PATH,
+	PUBLIC_PATH,
 }: {
-  BUILD_DIR: string;
-  PORT: string | number;
-}) {
-  let build = 0;
+	BUILD_DIR_PATH: string;
+	PUBLIC_PATH?: string;
+}): Promise<void> {
+	let build = 0;
 
-  async function runBuild() {
-    await Bun.build({
-      entrypoints: ["./src/index.tsx"],
-      outdir: BUILD_DIR,
-      minify: true,
-      splitting: true,
-      publicPath: "./",
-      plugins: [sassPlugin],
-    });
+	async function runBuild() {
+		console.log("Starting builder...");
+		const buildStart = performance.now();
 
-    console.log(
-      "React App is running on port " + `${process.env.HOST_URL}:` + PORT
-    );
-  }
+		// await $`rm -rf ${BUILD_DIR_PATH}`;
+		// await $`mkdir ./${BUILD_DIR_PATH}`;
+		// const file = Bun.file(`${BUILD_DIR_PATH}`);
+		// await file.delete();
 
-  if (process.env.NODE_ENV === "development") {
-    const srcWatcher = watch(
-      `./src`,
-      { recursive: true },
-      async (event, filename) => {
-        totalCompiledCSS = "";
-        await runBuild();
-        console.log(`Detected ${event} in ${filename}`);
-      }
-    );
+		const buildResult = await Bun.build({
+			entrypoints: ["./src/index.tsx"],
+			outdir: BUILD_DIR_PATH,
+			minify: process.env.BUN_DEV_BUILD !== "true",
+			splitting: process.env.BUN_DEV_BUILD !== "true",
+			sourcemap: process.env.BUN_DEV_BUILD === "true" ? "inline" : "none",
+			publicPath: PUBLIC_PATH || "./",
+			plugins: [
+				...(process.env.BUN_CODE_COVERAGE === "true"
+					? [
+							bunPluginIstanbul({
+								filter: /\.tsx$/,
+								loader: "tsx",
+								name: "istanbul-loader-tsx",
+							}),
+							bunPluginIstanbul({
+								filter: /\.jsx$/,
+								loader: "jsx",
+								name: "istanbul-loader-jsx",
+							}),
+					  ]
+					: []),
+			],
+			define: Object.fromEntries(
+				Object.entries(process.env)
+					.filter(([key]) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) // Only valid JS identifiers
+					.map(([key, value]) => [
+						`process.env.${key}`,
+						JSON.stringify(value?.replace(/\\/g, "\\\\")), // Escape backslashes
+					])
+			),
+		});
 
-    process.on("SIGINT", () => {
-      srcWatcher.close();
-      process.exit(0);
-    });
-  }
+		if (!buildResult.success) {
+			console.error("Build failed:", buildResult.logs);
+			throw new Error("Build process failed.");
+		}
 
-  if (build === 0) {
-    runBuild();
-    build = 1;
-  }
+		const buildEnd = performance.now();
+
+		console.log("Builder completed.");
+		console.log(`Build time: ${buildEnd - buildStart} ms.`);
+
+		console.log(`Build size: ${await getFolderSize(BUILD_DIR_PATH)} bytes.`);
+	}
+
+	if (build === 0) {
+		build = 1;
+		return runBuild(); // Return the promise
+	}
+	return Promise.resolve(); // Prevent redundant builds
 }

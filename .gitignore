@@ -176,3 +176,9 @@ dist
 
 # Build files
 build/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+/bun_dev_dist
